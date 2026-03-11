@@ -13,9 +13,27 @@ ensureDir(LOG_DIR);
 
 const LOG_FILE = process.env.LOG_FILE || path.join(LOG_DIR, 'app.log');
 
+const SENSITIVE_KEYS = new Set(['cookie', 'authorization', 'set-cookie', 'password', 'device_key']);
+
+function maskSensitiveFields(obj, depth = 0) {
+  if (depth > 8 || obj === null || typeof obj !== 'object') return obj;
+  if (Array.isArray(obj)) return obj.map((item) => maskSensitiveFields(item, depth + 1));
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    result[key] = SENSITIVE_KEYS.has(key.toLowerCase()) ? '[REDACTED]' : maskSensitiveFields(value, depth + 1);
+  }
+  return result;
+}
+
+const maskFormat = winston.format((info) => {
+  const masked = maskSensitiveFields(info);
+  return Object.assign(info, masked);
+})();
+
 const logger = winston.createLogger({
   level: process.env.LOG_LEVEL || 'info',
   format: winston.format.combine(
+    maskFormat,
     winston.format.timestamp(),
     winston.format.errors({ stack: true }),
     winston.format.json()

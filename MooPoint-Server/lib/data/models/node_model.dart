@@ -77,8 +77,8 @@ class NodeModel {
       comments: comments ?? this.comments,
       photoUrl: photoUrl ?? this.photoUrl,
       isNew: isNew ?? this.isNew,
-      rssi: rssi ?? this.rssi,
-      temperature: temperature ?? this.temperature,
+      rssi: rssi,
+      temperature: temperature,
     );
   }
 

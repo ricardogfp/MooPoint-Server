@@ -201,7 +201,7 @@ class _DashboardHeader extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 14,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
                 ),
               ),
             ],
@@ -253,7 +253,7 @@ class _PulseDotState extends State<_PulseDot>
           shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: widget.color.withOpacity(0.5),
+              color: widget.color.withValues(alpha: 0.5),
               blurRadius: 4,
               spreadRadius: 2,
             ),
@@ -267,13 +267,58 @@ class _PulseDotState extends State<_PulseDot>
 // ---------------------------------------------------------------------------
 // KPI Cards
 // ---------------------------------------------------------------------------
-class _KpiGrid extends StatelessWidget {
+class _KpiGrid extends StatefulWidget {
   final HerdState state;
   final AppLocalizations l10n;
   const _KpiGrid({required this.state, required this.l10n});
 
   @override
+  State<_KpiGrid> createState() => _KpiGridState();
+}
+
+class _KpiGridState extends State<_KpiGrid> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  static const int _cardCount = 5;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 700),
+      vsync: this,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Animation<double> _cardAnimation(int i) => CurvedAnimation(
+        parent: _controller,
+        curve: Interval(i / _cardCount * 0.5, 0.5 + i / _cardCount * 0.5,
+            curve: Curves.easeOut),
+      );
+
+  Widget _animated(int i, Widget child) {
+    final anim = _cardAnimation(i);
+    return AnimatedBuilder(
+      animation: anim,
+      builder: (_, __) => Opacity(
+        opacity: anim.value,
+        child: Transform.translate(
+          offset: Offset(0, 20 * (1 - anim.value)),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final state = widget.state;
+    final l10n = widget.l10n;
     final active = state.nodes.where((n) => n.overallStatus == 'Active').length;
     final lowBatt =
         state.nodes.where((n) => n.overallStatus == 'Low Battery').length;
@@ -292,7 +337,7 @@ class _KpiGrid extends StatelessWidget {
       final columns = constraints.maxWidth > 1100
           ? 5
           : (constraints.maxWidth > 600 ? 2 : 1);
-      final spacing = 16.0;
+      const spacing = 16.0;
       final itemWidth =
           (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
@@ -300,23 +345,23 @@ class _KpiGrid extends StatelessWidget {
         spacing: spacing,
         runSpacing: spacing,
         children: [
-          _KpiCard(
+          _animated(0, _KpiCard(
             title: l10n.totalAnimals,
             value: '${state.nodes.length}',
             icon: Icons.pets,
             color: MooColors.primary,
             subtitle: '${state.nodes.length} registered',
             width: itemWidth,
-          ),
-          _KpiCard(
+          )),
+          _animated(1, _KpiCard(
             title: l10n.onlineNow,
             value: '$active',
             icon: Icons.sensors,
             color: MooColors.active,
             subtitle: l10n.connectivity(connectivity),
             width: itemWidth,
-          ),
-          _KpiCard(
+          )),
+          _animated(2, _KpiCard(
             title: l10n.activeAlerts,
             value: '$activeAlerts',
             icon: Icons.warning_amber_rounded,
@@ -324,8 +369,8 @@ class _KpiGrid extends StatelessWidget {
             subtitle: l10n.requiresAttention,
             width: itemWidth,
             isAmber: true,
-          ),
-          _KpiCard(
+          )),
+          _animated(3, _KpiCard(
             title: l10n.batteryCritical,
             value: '$lowBatt',
             icon: Icons.battery_alert_rounded,
@@ -333,8 +378,8 @@ class _KpiGrid extends StatelessWidget {
             subtitle: l10n.rechargeNeeded,
             width: itemWidth,
             isRed: true,
-          ),
-          _KpiCard(
+          )),
+          _animated(4, _KpiCard(
             title: l10n.fenceAlerts,
             value: '$fenceAlerts',
             icon: Icons.bolt_rounded,
@@ -342,7 +387,7 @@ class _KpiGrid extends StatelessWidget {
             subtitle: l10n.breachDetected,
             width: itemWidth,
             isFence: true,
-          ),
+          )),
         ],
       );
     });
@@ -355,8 +400,6 @@ class _KpiCard extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String subtitle;
-  final IconData? subtitleIcon;
-  final Color? subtitleColor;
   final double width;
   final bool isAmber;
   final bool isRed;
@@ -368,8 +411,6 @@ class _KpiCard extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.subtitle,
-    this.subtitleIcon,
-    this.subtitleColor,
     required this.width,
     this.isAmber = false,
     this.isRed = false,
@@ -386,11 +427,11 @@ class _KpiCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: isAmber
-              ? Colors.amber.withOpacity(0.1)
+              ? Colors.amber.withValues(alpha: 0.1)
               : isRed
-                  ? Colors.red.withOpacity(0.1)
+                  ? Colors.red.withValues(alpha: 0.1)
                   : isFence
-                      ? MooColors.fenceBrown.withOpacity(0.2)
+                      ? MooColors.fenceBrown.withValues(alpha: 0.2)
                       : Theme.of(context).brightness == Brightness.dark
                           ? MooColors.borderDark
                           : MooColors.borderLight,
@@ -398,7 +439,7 @@ class _KpiCard extends StatelessWidget {
         boxShadow: [
           if (Theme.of(context).brightness == Brightness.light)
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withValues(alpha: 0.03),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -417,14 +458,14 @@ class _KpiCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.0,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
                 ),
               ),
               Container(
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -440,22 +481,13 @@ class _KpiCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Row(
-            children: [
-              if (subtitleIcon != null) ...[
-                Icon(subtitleIcon, size: 14, color: subtitleColor),
-                const SizedBox(width: 4),
-              ],
-              Text(
-                subtitle,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: subtitleColor ??
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-                ),
-              ),
-            ],
+          Text(
+            subtitle,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
           ),
         ],
       ),
@@ -505,14 +537,14 @@ class _ActivityFeed extends StatelessWidget {
                       color: Theme.of(context)
                           .colorScheme
                           .onSurface
-                          .withOpacity(0.1)),
+                          .withValues(alpha: 0.1)),
                   const SizedBox(height: 12),
                   Text(l10n.noRecentEvents,
                       style: TextStyle(
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.4))),
+                              .withValues(alpha: 0.4))),
                 ],
               ),
             ),
@@ -556,7 +588,7 @@ class _FeedItem extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 18),
@@ -586,7 +618,7 @@ class _FeedItem extends StatelessWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .onSurface
-                            .withOpacity(0.4),
+                            .withValues(alpha: 0.4),
                       ),
                     ),
                   ],
@@ -605,7 +637,7 @@ class _FeedItem extends StatelessWidget {
                     color: Theme.of(context)
                         .colorScheme
                         .onSurface
-                        .withOpacity(0.5),
+                        .withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -750,11 +782,9 @@ class _AlertCard extends StatelessWidget {
   final String description;
   final Color color;
   final IconData icon;
-  final double iconSize;
   final String action1;
   final String? action2;
   final VoidCallback? onAction1;
-  final VoidCallback? onAction2;
 
   const _AlertCard({
     required this.type,
@@ -762,11 +792,9 @@ class _AlertCard extends StatelessWidget {
     required this.description,
     required this.color,
     required this.icon,
-    this.iconSize = 18,
     required this.action1,
     this.action2,
     this.onAction1,
-    this.onAction2,
   });
 
   @override
@@ -775,16 +803,16 @@ class _AlertCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: color.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.25)),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(icon, color: color.withOpacity(0.8), size: iconSize),
+              Icon(icon, color: color.withValues(alpha: 0.8), size: 18),
               const SizedBox(width: 8),
               Text(
                 type.toUpperCase(),
@@ -792,7 +820,7 @@ class _AlertCard extends StatelessWidget {
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 1.2,
-                  color: color.withOpacity(0.8),
+                  color: color.withValues(alpha: 0.8),
                 ),
               ),
             ],
@@ -807,7 +835,7 @@ class _AlertCard extends StatelessWidget {
             description,
             style: TextStyle(
               fontSize: 13,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               height: 1.4,
             ),
           ),
@@ -834,7 +862,7 @@ class _AlertCard extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: onAction2,
+                    onPressed: null,
                     style: OutlinedButton.styleFrom(
                       backgroundColor:
                           Theme.of(context).brightness == Brightness.dark
@@ -889,14 +917,14 @@ class _DashboardFooter extends StatelessWidget {
             style: TextStyle(
                 fontSize: 11,
                 color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
           ),
           Text(
             l10n.lastSynced("just now"),
             style: TextStyle(
                 fontSize: 11,
                 color:
-                    Theme.of(context).colorScheme.onSurface.withOpacity(0.4)),
+                    Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4)),
           ),
         ],
       ),

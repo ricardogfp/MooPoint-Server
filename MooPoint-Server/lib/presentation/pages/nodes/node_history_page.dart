@@ -124,7 +124,7 @@ class _NodeHistoryPageState extends State<NodeHistoryPage> {
                             polygons: geofences
                                 .map((gf) => Polygon(
                                       points: gf.points,
-                                      color: Colors.orange.withOpacity(0.2),
+                                      color: Colors.orange.withValues(alpha: 0.2),
                                       borderColor: Colors.deepOrange,
                                       borderStrokeWidth: 2,
                                       label: gf.name,

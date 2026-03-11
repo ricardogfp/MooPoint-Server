@@ -245,7 +245,7 @@ class _CompassTrackerPageState extends State<CompassTrackerPage>
                       padding: const EdgeInsets.all(16),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -296,7 +296,7 @@ class _CompassTrackerPageState extends State<CompassTrackerPage>
                             height: 180,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.white.withOpacity(0.05),
+                              color: Colors.white.withValues(alpha: 0.05),
                               border: Border.all(
                                 color: _isProximityAlert
                                     ? Colors.red
@@ -326,7 +326,7 @@ class _CompassTrackerPageState extends State<CompassTrackerPage>
                     Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.7),
+                        color: Colors.black.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
@@ -360,7 +360,7 @@ class _CompassTrackerPageState extends State<CompassTrackerPage>
                         margin: const EdgeInsets.only(top: 20),
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.red.withOpacity(0.8),
+                          color: Colors.red.withValues(alpha: 0.8),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: const Row(
@@ -390,7 +390,7 @@ class _CompassTrackerPageState extends State<CompassTrackerPage>
                   padding: const EdgeInsets.all(12),
                   margin: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.75),
+                    color: Colors.black.withValues(alpha: 0.75),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(

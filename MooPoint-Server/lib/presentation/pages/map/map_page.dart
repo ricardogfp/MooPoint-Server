@@ -252,7 +252,7 @@ class MapPageState extends State<MapPage>
                       border: Border.all(color: Colors.white, width: 3),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
+                          color: Colors.black.withValues(alpha: 0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -294,6 +294,17 @@ class MapPageState extends State<MapPage>
       WidgetsBinding.instance.addPostFrameCallback((_) => _fitAllNodes(nodes));
     }
 
+    // Handle pending map selection from other pages (e.g., AnimalDetailPage)
+    final pending = herdState.pendingMapSelection;
+    if (pending != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && herdState.pendingMapSelection != null) {
+          herdState.clearPendingMapSelection();
+          _selectNode(pending);
+        }
+      });
+    }
+
     return Stack(
       children: [
         // Map LAYER
@@ -317,7 +328,7 @@ class MapPageState extends State<MapPage>
                   .map((g) => Polygon(
                         points: g.points,
                         color: Color(int.parse(g.color.replaceAll('#', '0xFF')))
-                            .withOpacity(0.3),
+                            .withValues(alpha: 0.3),
                         borderColor:
                             Color(int.parse(g.color.replaceAll('#', '0xFF'))),
                         borderStrokeWidth: 2,
@@ -343,7 +354,7 @@ class MapPageState extends State<MapPage>
                   Polyline(
                     points: _historyPoints,
                     strokeWidth: 3,
-                    color: MooColors.primary.withOpacity(0.6),
+                    color: MooColors.primary.withValues(alpha: 0.6),
                   ),
                 ],
               ),
@@ -372,7 +383,11 @@ class MapPageState extends State<MapPage>
             left: 0,
             right: 0,
             child: Center(
-              child: _ViewTogglePill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: _ViewTogglePill(
                 state: _viewState,
                 currentMode: _heatMapMode,
                 onModeChanged: (mode) {
@@ -387,6 +402,8 @@ class MapPageState extends State<MapPage>
                     _reloadHeatMapData();
                   }
                 },
+                  ),
+                ),
               ),
             ),
           ),
@@ -574,7 +591,7 @@ class MapPageState extends State<MapPage>
 /// Banner shown on the map when there are unplaced fence nodes.
 class _FenceNodeBanner extends StatelessWidget {
   final List<NodeModel> nodes;
-  const _FenceNodeBanner({super.key, required this.nodes});
+  const _FenceNodeBanner({required this.nodes});
 
   @override
   Widget build(BuildContext context) {
@@ -673,7 +690,7 @@ class _ViewTogglePill extends StatelessWidget {
       height: 44,
       padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: Colors.white24),
       ),
@@ -722,7 +739,7 @@ class _TimeRangeSelector extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.6),
+        color: Colors.black.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.white24),
       ),
@@ -776,7 +793,7 @@ class _PlaybackBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         border: const Border(top: BorderSide(color: Colors.white12)),
       ),
@@ -810,7 +827,7 @@ class _PlaybackBar extends StatelessWidget {
                     activeTrackColor: MooColors.primary,
                     inactiveTrackColor: Colors.white24,
                     thumbColor: Colors.white,
-                    overlayColor: MooColors.primary.withOpacity(0.2),
+                    overlayColor: MooColors.primary.withValues(alpha: 0.2),
                     trackHeight: 4,
                   ),
                   child: Slider(
@@ -863,12 +880,12 @@ class _NodeInfoPill extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.72),
+          color: Colors.black.withValues(alpha: 0.72),
           borderRadius: BorderRadius.circular(30),
           border: Border.all(color: Colors.white12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.3),
+              color: Colors.black.withValues(alpha: 0.3),
               blurRadius: 12,
               offset: const Offset(0, 4),
             ),
@@ -930,12 +947,12 @@ class _HeatmapLegendCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.78),
+        color: Colors.black.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1006,12 +1023,12 @@ class _CoverageLegendCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.78),
+        color: Colors.black.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.25),
+            color: Colors.black.withValues(alpha: 0.25),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),

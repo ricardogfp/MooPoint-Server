@@ -5,8 +5,8 @@ import 'package:moo_point/data/models/node_model.dart';
 import 'package:moo_point/data/models/behavior_model.dart';
 import 'package:moo_point/presentation/providers/herd_state.dart';
 import 'package:moo_point/presentation/widgets/charts/behavior_chart_widget.dart';
-import 'package:moo_point/presentation/widgets/dashboard/behavior_insights_widget.dart';
-import 'package:moo_point/main.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
+import 'package:moo_point/presentation/providers/navigation_provider.dart';
 
 class AnimalDetailPage extends StatelessWidget {
   final NodeModel node;
@@ -46,11 +46,11 @@ class AnimalDetailPage extends StatelessWidget {
                 icon: const Icon(Icons.map_outlined, color: Colors.white),
                 tooltip: 'View on Map',
                 onPressed: () {
+                  final herd = context.read<HerdState>();
+                  final nav = context.read<NavigationIndexProvider>();
+                  herd.setPendingMapSelection(node);
                   Navigator.pop(context);
-                  // Navigate to map and select node
-                  Future.delayed(const Duration(milliseconds: 100), () {
-                    HomePage.mapKey.currentState?.selectNode(node);
-                  });
+                  nav.setIndex(1);
                 },
               ),
             ],
@@ -402,6 +402,56 @@ class _BehaviorCard extends StatelessWidget {
 
 
 // ---------------------------------------------------------------------------
+// Health Insights Card
+// ---------------------------------------------------------------------------
+
+class _HealthInsightsCard extends StatelessWidget {
+  final NodeModel node;
+  const _HealthInsightsCard({required this.node});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <Widget>[];
+
+    if (node.temperature != null) {
+      items.add(_StatusItem(
+        label: 'Temperature',
+        value: '${node.temperature!.toStringAsFixed(1)} °C',
+        valueColor: node.temperature! > 39.5 ? Colors.red : null,
+      ));
+    }
+
+    if (node.healthStatus != null && node.healthStatus!.isNotEmpty) {
+      items.add(_StatusItem(
+        label: 'Health Status',
+        value: node.healthStatus!,
+      ));
+    }
+
+    final isRecent = node.isRecent;
+    items.add(_StatusItem(
+      label: 'Activity',
+      value: isRecent ? 'Active' : 'Offline',
+      valueColor: isRecent ? Colors.green : Colors.grey,
+    ));
+
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _DetailCard(
+      title: 'Health Insights',
+      icon: Icons.health_and_safety_outlined,
+      child: Wrap(
+        spacing: 16,
+        runSpacing: 8,
+        children: items,
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Event History Card
 // ---------------------------------------------------------------------------
 
@@ -487,10 +537,11 @@ class _ActionButtons extends StatelessWidget {
       children: [
         ElevatedButton.icon(
           onPressed: () {
+            final herd = context.read<HerdState>();
+            final nav = context.read<NavigationIndexProvider>();
+            herd.setPendingMapSelection(node);
             Navigator.pop(context);
-            Future.delayed(const Duration(milliseconds: 100), () {
-              HomePage.mapKey.currentState?.selectNode(node);
-            });
+            nav.setIndex(1);
           },
           icon: const Icon(Icons.map_outlined, size: 18),
           label: const Text('View on Map'),

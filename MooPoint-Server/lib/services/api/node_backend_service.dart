@@ -14,15 +14,12 @@ import 'package:moo_point/data/models/geofence_model.dart';
 import 'package:moo_point/services/api/node_backend_config.dart';
 import 'package:moo_point/services/api/node_backend_http_client.dart';
 import 'package:moo_point/data/models/node_history_model.dart';
-import 'package:moo_point/presentation/providers/settings_provider.dart';
 
 class NodeBackendService {
   final http.Client _client;
-  final SettingsProvider? _settings;
 
-  NodeBackendService({http.Client? client, SettingsProvider? settings})
-      : _client = client ?? createNodeBackendHttpClient(),
-        _settings = settings;
+  NodeBackendService({http.Client? client})
+      : _client = client ?? createNodeBackendHttpClient();
 
   String get _baseUrl => NodeBackendConfig.baseUrl.endsWith('/')
       ? NodeBackendConfig.baseUrl
@@ -240,8 +237,9 @@ class NodeBackendService {
     return BehaviorSummary.fromJson(summary);
   }
 
-  Future<List<AlertModel>> getAlerts({int limit = 100, bool includeResolved = false}) async {
-    final url = Uri.parse('$_baseUrl/nodejs/api/alerts?limit=$limit${includeResolved ? '&includeResolved=true' : ''}');
+  Future<List<AlertModel>> getAlerts({int limit = 100, bool includeResolved = false, String? severity}) async {
+    final severityParam = severity != null ? '&severity=$severity' : '';
+    final url = Uri.parse('$_baseUrl/nodejs/api/alerts?limit=$limit${includeResolved ? '&includeResolved=true' : ''}$severityParam');
     final resp = await _client.get(url).timeout(const Duration(seconds: 15));
     if (resp.statusCode != 200) {
       throw Exception('HTTP ${resp.statusCode}: ${resp.body}');

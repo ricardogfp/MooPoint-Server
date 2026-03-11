@@ -988,7 +988,7 @@ class _RealSignalCard extends StatelessWidget {
           Text(signalLabel,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
           if (rssi != null)
-            Text('${rssi} dBm',
+            Text('$rssi dBm',
                 style: TextStyle(fontSize: 10, color: Colors.grey.shade500)),
           const SizedBox(height: 8),
           Row(

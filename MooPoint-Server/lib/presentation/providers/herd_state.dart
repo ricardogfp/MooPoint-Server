@@ -21,7 +21,7 @@ class HerdState extends ChangeNotifier {
   NodeBackendService get backend => _backend;
 
   HerdState({NodeBackendService? backend, NodeBackendAdminService? admin, SettingsProvider? settings, Duration? refreshInterval})
-      : _backend = backend ?? NodeBackendService(settings: settings),
+      : _backend = backend ?? NodeBackendService(),
         _admin = admin ?? NodeBackendAdminService() {
     _startAutoRefresh(refreshInterval ?? const Duration(seconds: 30));
   }
@@ -48,6 +48,19 @@ class HerdState extends ChangeNotifier {
 
   @Deprecated('Use loadNodesAndGeofences instead')
   Future<void> loadCowsAndGeofences() => loadNodesAndGeofences();
+
+  // --- Pending map selection (set before switching to map tab) ---
+  NodeModel? _pendingMapSelection;
+  NodeModel? get pendingMapSelection => _pendingMapSelection;
+
+  void setPendingMapSelection(NodeModel node) {
+    _pendingMapSelection = node;
+    notifyListeners();
+  }
+
+  void clearPendingMapSelection() {
+    _pendingMapSelection = null;
+  }
 
   // --- Geofences ---
   List<Geofence> _geofences = [];

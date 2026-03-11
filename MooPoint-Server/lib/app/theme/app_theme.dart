@@ -81,7 +81,7 @@ ThemeData mooLightTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: MooColors.surfaceLight,
-      indicatorColor: MooColors.primary.withOpacity(0.15),
+      indicatorColor: MooColors.primary.withValues(alpha: 0.15),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return const TextStyle(
@@ -101,7 +101,7 @@ ThemeData mooLightTheme() {
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: MooColors.surfaceLight,
-      indicatorColor: MooColors.primary.withOpacity(0.15),
+      indicatorColor: MooColors.primary.withValues(alpha: 0.15),
       selectedIconTheme: const IconThemeData(color: MooColors.primary),
       unselectedIconTheme: IconThemeData(color: Colors.grey.shade600),
       selectedLabelTextStyle: const TextStyle(
@@ -183,7 +183,7 @@ ThemeData mooDarkTheme() {
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: MooColors.surfaceDark,
-      indicatorColor: MooColors.primary.withOpacity(0.25),
+      indicatorColor: MooColors.primary.withValues(alpha: 0.25),
       labelTextStyle: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
           return const TextStyle(
@@ -203,7 +203,7 @@ ThemeData mooDarkTheme() {
     ),
     navigationRailTheme: NavigationRailThemeData(
       backgroundColor: MooColors.surfaceDark,
-      indicatorColor: MooColors.primary.withOpacity(0.25),
+      indicatorColor: MooColors.primary.withValues(alpha: 0.25),
       selectedIconTheme: const IconThemeData(color: MooColors.primary),
       unselectedIconTheme: const IconThemeData(color: Color(0xFF64748B)),
       selectedLabelTextStyle: const TextStyle(
@@ -340,9 +340,9 @@ class _StatusPillState extends State<StatusPill>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: widget.color.withOpacity(0.12),
+        color: widget.color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: widget.color.withOpacity(0.2), width: 1),
+        border: Border.all(color: widget.color.withValues(alpha: 0.2), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -360,7 +360,7 @@ class _StatusPillState extends State<StatusPill>
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: widget.color.withOpacity(0.5),
+                      color: widget.color.withValues(alpha: 0.5),
                       blurRadius: 4,
                       spreadRadius: 2,
                     ),
@@ -419,14 +419,14 @@ class EmptyStateWidget extends StatelessWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    MooColors.primary.withOpacity(0.10),
-                    MooColors.accent.withOpacity(0.10),
+                    MooColors.primary.withValues(alpha: 0.10),
+                    MooColors.accent.withValues(alpha: 0.10),
                   ],
                 ),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon,
-                  size: 48, color: MooColors.primary.withOpacity(0.6)),
+                  size: 48, color: MooColors.primary.withValues(alpha: 0.6)),
             ),
             const SizedBox(height: 20),
             Text(
@@ -472,7 +472,7 @@ class NodeAvatar extends StatelessWidget {
           gradient: LinearGradient(
             colors: [
               Color(node.statusColor),
-              Color(node.statusColor).withOpacity(0.5),
+              Color(node.statusColor).withValues(alpha: 0.5),
             ],
           ),
         ),
@@ -492,7 +492,7 @@ class NodeAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
-            color: Color(node.statusColor).withOpacity(0.3),
+            color: Color(node.statusColor).withValues(alpha: 0.3),
             blurRadius: 8,
             offset: const Offset(0, 4),
           ),

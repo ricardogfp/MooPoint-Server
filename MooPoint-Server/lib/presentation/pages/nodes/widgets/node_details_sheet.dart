@@ -5,6 +5,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_heatmap/flutter_map_heatmap.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:moo_point/app/theme/app_theme.dart';
 import 'package:moo_point/presentation/widgets/charts/behavior_chart_widget.dart';
 import 'package:moo_point/data/models/node_model.dart';
@@ -230,13 +231,13 @@ class _QuickAction extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      MooColors.primary.withOpacity(0.15),
-                      MooColors.primary.withOpacity(0.05),
+                      MooColors.primary.withValues(alpha: 0.15),
+                      MooColors.primary.withValues(alpha: 0.05),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(14),
                   border: Border.all(
-                    color: MooColors.primary.withOpacity(0.1),
+                    color: MooColors.primary.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),
@@ -288,7 +289,7 @@ class _OverviewTab extends StatelessWidget {
                   BoxShadow(
                     color:
                         (node.hasVoltageFault ? Colors.red : MooColors.primary)
-                            .withOpacity(0.3),
+                            .withValues(alpha: 0.3),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),

@@ -543,7 +543,7 @@ class BLEProvisionService {
         if (line.startsWith('LEN:')) continue;
         if (line.startsWith('{') ||
             line.startsWith('"') ||
-            line.startsWith('[')) continue;
+            line.startsWith('[')) { continue; }
 
         completer.complete(line);
         return;
@@ -595,7 +595,7 @@ class BLEProvisionService {
         if (line.startsWith('LEN:')) continue;
         if (line.startsWith('{') ||
             line.startsWith('"') ||
-            line.startsWith('[')) continue;
+            line.startsWith('[')) { continue; }
 
         completeIfAck(line);
         if (completer.isCompleted) return;

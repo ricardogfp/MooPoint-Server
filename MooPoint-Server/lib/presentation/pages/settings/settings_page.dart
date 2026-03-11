@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -7,7 +6,7 @@ import 'package:moo_point/services/notification/notification_service.dart';
 import 'package:moo_point/presentation/providers/settings_provider.dart';
 import 'package:moo_point/presentation/providers/herd_state.dart';
 import 'package:moo_point/services/api/node_backend_auth_service.dart';
-import 'package:moo_point/main.dart' show AuthGate;
+import 'package:moo_point/app/auth_state.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -62,10 +61,7 @@ class _SettingsPageState extends State<SettingsPage> {
     }
     auth.dispose();
     if (!mounted) return;
-    Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const AuthGate()),
-      (_) => false,
-    );
+    context.read<AuthState>().triggerReAuth();
   }
 
   @override

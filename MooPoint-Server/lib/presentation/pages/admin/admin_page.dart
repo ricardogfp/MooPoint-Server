@@ -426,7 +426,7 @@ class _GeofencesTabState extends State<_GeofencesTab> {
                                   width: 40,
                                   height: 40,
                                   decoration: BoxDecoration(
-                                    color: MooColors.accent.withOpacity(0.12),
+                                    color: MooColors.accent.withValues(alpha: 0.12),
                                     shape: BoxShape.circle,
                                   ),
                                   child: const Icon(Icons.fence,
@@ -1061,7 +1061,7 @@ class _GeofenceEditorSheetState extends State<_GeofenceEditorSheet> {
     final polygon = _points.length >= 3
         ? Polygon(
             points: _points,
-            color: Colors.blue.withOpacity(0.2),
+            color: Colors.blue.withValues(alpha: 0.2),
             borderColor: Colors.blue,
             borderStrokeWidth: 2,
           )

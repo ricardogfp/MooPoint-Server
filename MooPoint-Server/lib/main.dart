@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:moo_point/l10n/app_localizations.dart';
 import 'l10n/l10n_helper.dart';
 
@@ -26,6 +26,7 @@ import 'package:moo_point/presentation/pages/settings/settings_page.dart';
 
 import 'package:moo_point/presentation/providers/settings_provider.dart';
 import 'package:moo_point/presentation/providers/navigation_provider.dart';
+import 'package:moo_point/app/auth_state.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'dart:convert';
@@ -59,6 +60,7 @@ Future<void> main() async {
         ChangeNotifierProvider.value(value: settingsProvider),
         ChangeNotifierProvider(create: (context) => HerdState(settings: context.read<SettingsProvider>())),
         ChangeNotifierProvider(create: (_) => NavigationIndexProvider()),
+        ChangeNotifierProvider(create: (_) => AuthState()),
       ],
       child: const MooPointApp(),
     ),
@@ -89,7 +91,7 @@ class MooPointApp extends StatelessWidget {
 }
 
 class AuthGate extends StatefulWidget {
-  const AuthGate();
+  const AuthGate({super.key});
 
   @override
   State<AuthGate> createState() => AuthGateState();
@@ -122,6 +124,14 @@ class AuthGateState extends State<AuthGate> {
 
   @override
   Widget build(BuildContext context) {
+    final authState = context.watch<AuthState>();
+    if (authState.needsReAuth) {
+      authState.reset();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() { _future = _auth.me(); });
+      });
+    }
+
     return FutureBuilder<String?>(
       future: _future,
       builder: (context, snap) {
@@ -141,7 +151,7 @@ class AuthGateState extends State<AuthGate> {
         // Store username for display in dashboard
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
-            context.read<SettingsProvider>().setUsername(username!);
+            context.read<SettingsProvider>().setUsername(username);
           }
         });
 
@@ -204,7 +214,7 @@ class _LoginPageState extends State<_LoginPage> {
       if (!mounted) return;
 
       // Store username for display across the app
-      context.read<SettingsProvider>().setUsername(me!);
+      context.read<SettingsProvider>().setUsername(me);
 
       widget.onLoggedIn();
     } catch (e) {
@@ -267,7 +277,7 @@ class _LoginPageState extends State<_LoginPage> {
                     Text(
                       'Livestock Tracking System',
                       style: TextStyle(
-                          fontSize: 14, color: Colors.white.withOpacity(0.8)),
+                          fontSize: 14, color: Colors.white.withValues(alpha: 0.8)),
                     ),
                     const SizedBox(height: 32),
                     Card(
@@ -349,7 +359,7 @@ class _LoginPageState extends State<_LoginPage> {
                     Text(
                       'v$kAppVersion',
                       style: TextStyle(
-                          fontSize: 12, color: Colors.white.withOpacity(0.6)),
+                          fontSize: 12, color: Colors.white.withValues(alpha: 0.6)),
                     ),
                   ],
                 ),
@@ -364,7 +374,7 @@ class _LoginPageState extends State<_LoginPage> {
 
 // ---------------------------------------------------------------------------
 
-// HomePage — bottom navigation shell with Map / Herd / Events / Admin tabs
+// HomePage � bottom navigation shell with Map / Herd / Events / Admin tabs
 
 // ---------------------------------------------------------------------------
 
@@ -379,6 +389,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final NodeBackendAuthService _auth = NodeBackendAuthService();
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
   WebSocketChannel? _ws;
   NavigationIndexProvider? _navProvider;
@@ -463,7 +474,7 @@ class _HomePageState extends State<HomePage> {
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('⚡ $message'),
+                  content: Text('? $message'),
                   backgroundColor: alertType == 'voltage_low'
                       ? Colors.orange.shade800
                       : Colors.blue,
@@ -496,7 +507,7 @@ class _HomePageState extends State<HomePage> {
               // In-app snackbar
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('⚠️ $node exited $fence'),
+                  content: Text('?? $node exited $fence'),
                   backgroundColor: Colors.red,
                   duration: const Duration(seconds: 8),
                   action: SnackBarAction(
@@ -625,9 +636,7 @@ class _HomePageState extends State<HomePage> {
                     if (!isWide)
                       IconButton(
                         icon: const Icon(Icons.menu),
-                        onPressed: () {
-                          // TODO: Implement mobile drawer if needed
-                        },
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
                       ),
 
                     // --- Search Bar ---
@@ -725,13 +734,18 @@ class _HomePageState extends State<HomePage> {
                         Positioned(
                           right: 8,
                           top: 8,
-                          child: Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
+                          child: Consumer<HerdState>(
+                            builder: (_, herd, __) =>
+                                herd.alerts.any((a) => !a.resolved)
+                                    ? Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      )
+                                    : const SizedBox.shrink(),
                           ),
                         ),
                       ],
@@ -752,6 +766,17 @@ class _HomePageState extends State<HomePage> {
     );
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: isWide
+          ? null
+          : _MobileDrawer(
+              currentIndex: _currentIndex,
+              navItems: navItems,
+              onTap: (i) {
+                _scaffoldKey.currentState?.closeDrawer();
+                _onTabTapped(i);
+              },
+            ),
       body: navShell,
       bottomNavigationBar: isWide
           ? null
@@ -765,6 +790,73 @@ class _HomePageState extends State<HomePage> {
                       ))
                   .toList(),
             ),
+    );
+  }
+}
+
+class _MobileDrawer extends StatelessWidget {
+  final int currentIndex;
+  final List<({IconData icon, String label, int index})> navItems;
+  final void Function(int) onTap;
+
+  const _MobileDrawer({
+    required this.currentIndex,
+    required this.navItems,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Drawer(
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+              child: Row(
+                children: const [
+                  MooLogo(height: 32),
+                  SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('MooPoint',
+                          style: TextStyle(
+                              fontSize: 18, fontWeight: FontWeight.bold)),
+                      Text('v4.2.0',
+                          style:
+                              TextStyle(fontSize: 10, color: Colors.grey)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: navItems
+                    .map((item) => ListTile(
+                          leading: Icon(item.icon,
+                              color: currentIndex == item.index
+                                  ? Theme.of(context).colorScheme.primary
+                                  : null),
+                          title: Text(item.label),
+                          selected: currentIndex == item.index,
+                          selectedTileColor: isDark
+                              ? MooColors.surfaceDark
+                              : MooColors.surfaceLight,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          onTap: () => onTap(item.index),
+                        ))
+                    .toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -858,7 +950,7 @@ class _CollapsibleSidebar extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   color: isDark
-                      ? MooColors.bgDark.withOpacity(0.5)
+                      ? MooColors.bgDark.withValues(alpha: 0.5)
                       : MooColors.bgLight,
                   borderRadius: BorderRadius.circular(10),
                 ),
@@ -895,7 +987,7 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = isSelected ? MooColors.primary : Colors.grey.shade500;
     final bgColor =
-        isSelected ? MooColors.primary.withOpacity(0.1) : Colors.transparent;
+        isSelected ? MooColors.primary.withValues(alpha: 0.1) : Colors.transparent;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),

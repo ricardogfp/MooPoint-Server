@@ -230,7 +230,7 @@ class _VoltageChartWidgetState extends State<VoltageChartWidget> {
                       dotData: const FlDotData(show: false),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.blue.withOpacity(0.1),
+                        color: Colors.blue.withValues(alpha: 0.1),
                       ),
                     ),
                   ],
@@ -238,7 +238,7 @@ class _VoltageChartWidgetState extends State<VoltageChartWidget> {
                     horizontalLines: [
                       HorizontalLine(
                         y: 5000,
-                        color: Colors.red.withOpacity(0.5),
+                        color: Colors.red.withValues(alpha: 0.5),
                         strokeWidth: 2,
                         dashArray: [5, 5],
                         label: HorizontalLineLabel(

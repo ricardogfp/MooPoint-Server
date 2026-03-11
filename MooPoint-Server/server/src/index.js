@@ -26,11 +26,21 @@ const mqttConfigPush = require('./mqtt_config_push');
 let mqttClient = null;
 let mqttLocateTopic = null;
 
+const rateLimit = require('express-rate-limit');
+const bcrypt = require('bcryptjs');
+
 const app = express();
 app.disable('x-powered-by');
 
 app.set('trust proxy', 1);
-app.use(cors({ origin: true, credentials: true }));
+const ALLOWED_ORIGINS = (process.env.CORS_ORIGINS || 'https://loracow.daeron16.com').split(',').map((o) => o.trim());
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+    cb(new Error('Not allowed by CORS'));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 
@@ -126,6 +136,11 @@ app.use((req, res, next) => {
 
 app.use(sessionParser);
 
+// Warn if admin password is stored as plaintext
+if (process.env.ADMIN_PASSWORD && !process.env.ADMIN_PASSWORD.startsWith('$2b$')) {
+  logger.warn('ADMIN_PASSWORD is plaintext. Hash it with bcryptjs for security.');
+}
+
 // Simple test endpoint without authentication for tunnel debugging
 app.get('/test-tunnel', (req, res) => {
   res.json({
@@ -186,8 +201,7 @@ app.get('/admin/uploads-test', requireAuth, async (req, res) => {
   }
 });
 
-// Simple endpoint to list photo files (no auth required)
-app.get('/api/photos-list', (req, res) => {
+app.get('/api/photos-list', requireAuth, (req, res) => {
   try {
     const photosPath = path.join(__dirname, '..', 'uploads', 'photos');
 
@@ -294,7 +308,7 @@ app.get('/health/influx', async (req, res) => {
 });
 
 // BLE locate endpoint
-app.post('/api/ble_locate', async (req, res) => {
+app.post('/api/ble_locate', requireAuth, async (req, res) => {
   const nodeId = Number(req.body?.node_id);
   const minutes = Number(req.body?.minutes) || 5;
 
@@ -372,7 +386,15 @@ app.get('/auth/me', (req, res) => {
   }
 });
 
-app.post('/auth/login', (req, res) => {
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 15,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'too_many_attempts' },
+});
+
+app.post('/auth/login', loginLimiter, async (req, res) => {
   const adminUser = process.env.ADMIN_USERNAME;
   const adminPass = process.env.ADMIN_PASSWORD;
   if (!adminUser || !adminPass) {
@@ -385,7 +407,16 @@ app.post('/auth/login', (req, res) => {
     return res.status(400).json({ error: 'credentials_required' });
   }
 
-  if (username !== adminUser || password !== adminPass) {
+  if (username !== adminUser) {
+    return res.status(401).json({ error: 'invalid_credentials' });
+  }
+
+  // Support both bcrypt hashes ($2b$...) and legacy plaintext passwords
+  const match = adminPass.startsWith('$2b$')
+    ? await bcrypt.compare(password, adminPass)
+    : password === adminPass;
+
+  if (!match) {
     return res.status(401).json({ error: 'invalid_credentials' });
   }
 
@@ -398,13 +429,7 @@ app.post('/auth/login', (req, res) => {
 
     req.session.user = { username };
 
-    // Debug session cookie settings
-    logger.info('Login successful', {
-      username,
-      sessionId: req.session.id,
-      cookie: req.session.cookie,
-      headers: req.headers
-    });
+    logger.info('Login successful', { username, sessionId: req.session.id });
 
     res.json({ ok: true, username });
   });
@@ -416,7 +441,7 @@ app.post('/auth/logout', (req, res) => {
   });
 });
 
-app.get('/api/nodes/events', async (req, res) => {
+app.get('/api/nodes/events', requireAuth, async (req, res) => {
   const nodeId = req.query.nodeId ? Number(req.query.nodeId) : null;
   const limit = Math.min(Number(req.query.limit || '50'), 500);
   try {
@@ -428,7 +453,7 @@ app.get('/api/nodes/events', async (req, res) => {
   }
 });
 
-app.get('/api/nodes', async (req, res) => {
+app.get('/api/nodes', requireAuth, async (req, res) => {
   try {
     const nodes0 = await getLatestNodes();
     const nodeIds = nodes0.map((c) => c.nodeId);
@@ -448,7 +473,7 @@ app.get('/api/cows', (req, res) => res.redirect('/api/nodes'));
 app.get('/nodejs/api/cows', (req, res) => res.redirect('/api/nodes'));
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/nodes', async (req, res) => {
+app.get('/nodejs/api/nodes', requireAuth, async (req, res) => {
   try {
     const nodes0 = await getLatestNodes();
     const nodeIds = nodes0.map((c) => c.nodeId);
@@ -534,7 +559,7 @@ app.get('/admin/device-credentials', requireAuth, async (req, res) => {
   }
 });
 
-app.get('/api/nodes/:nodeId', async (req, res) => {
+app.get('/api/nodes/:nodeId', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   try {
     const node0 = await getNodeById(nodeId);
@@ -556,7 +581,7 @@ app.get('/api/cows/:nodeId', (req, res) => res.redirect(`/api/nodes/${req.params
 app.get('/nodejs/api/cows/:nodeId', (req, res) => res.redirect(`/api/nodes/${req.params.nodeId}`));
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/nodes/:nodeId', async (req, res) => {
+app.get('/nodejs/api/nodes/:nodeId', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   try {
     const node0 = await getNodeById(nodeId);
@@ -573,7 +598,7 @@ app.get('/nodejs/api/nodes/:nodeId', async (req, res) => {
   }
 });
 
-app.get('/api/nodes/:nodeId/history', async (req, res) => {
+app.get('/api/nodes/:nodeId/history', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = Number(req.query.hours || '24');
   const everyMinutes = Number(req.query.everyMinutes || '1');
@@ -592,7 +617,7 @@ app.get('/api/cows/:nodeId/history', (req, res) => res.redirect(`/api/nodes/${re
 app.get('/nodejs/api/cows/:nodeId/history', (req, res) => res.redirect(`/api/nodes/${req.params.nodeId}/history`));
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/nodes/:nodeId/history', async (req, res) => {
+app.get('/nodejs/api/nodes/:nodeId/history', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = Number(req.query.hours || '24');
   const everyMinutes = Number(req.query.everyMinutes || '1');
@@ -606,7 +631,7 @@ app.get('/nodejs/api/nodes/:nodeId/history', async (req, res) => {
   }
 });
 
-app.get('/api/nodes/:nodeId/fence-history', async (req, res) => {
+app.get('/api/nodes/:nodeId/fence-history', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = Number(req.query.hours || '24');
   const everyMinutes = Number(req.query.everyMinutes || '5');
@@ -619,7 +644,7 @@ app.get('/api/nodes/:nodeId/fence-history', async (req, res) => {
   }
 });
 
-app.get('/nodejs/api/nodes/:nodeId/fence-history', async (req, res) => {
+app.get('/nodejs/api/nodes/:nodeId/fence-history', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = Number(req.query.hours || '24');
   const everyMinutes = Number(req.query.everyMinutes || '5');
@@ -632,7 +657,7 @@ app.get('/nodejs/api/nodes/:nodeId/fence-history', async (req, res) => {
   }
 });
 
-app.get('/api/behavior/:nodeId', async (req, res) => {
+app.get('/api/behavior/:nodeId', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = req.query.hours ? Number(req.query.hours) : 24;
   try {
@@ -644,7 +669,7 @@ app.get('/api/behavior/:nodeId', async (req, res) => {
   }
 });
 
-app.get('/api/behavior/:nodeId/summary', async (req, res) => {
+app.get('/api/behavior/:nodeId/summary', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const date = req.query.date ? String(req.query.date) : null;
   try {
@@ -656,7 +681,7 @@ app.get('/api/behavior/:nodeId/summary', async (req, res) => {
   }
 });
 
-app.get('/nodejs/api/behavior/:nodeId/summary', async (req, res) => {
+app.get('/nodejs/api/behavior/:nodeId/summary', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const date = req.query.date ? String(req.query.date) : null;
   try {
@@ -668,7 +693,7 @@ app.get('/nodejs/api/behavior/:nodeId/summary', async (req, res) => {
   }
 });
 
-app.get('/nodejs/api/behavior/:nodeId', async (req, res) => {
+app.get('/nodejs/api/behavior/:nodeId', requireAuth, async (req, res) => {
   const { nodeId } = req.params;
   const hours = req.query.hours ? Number(req.query.hours) : 24;
   try {
@@ -683,10 +708,11 @@ app.get('/nodejs/api/behavior/:nodeId', async (req, res) => {
 // --- Unified alerts endpoint ---
 // GET /nodejs/api/alerts — returns combined node_events + geofence_events (exit only).
 // Resolved alerts excluded by default; pass ?includeResolved=true to include them.
-app.get('/nodejs/api/alerts', async (req, res) => {
+app.get('/nodejs/api/alerts', requireAuth, async (req, res) => {
   try {
     const limit = Math.min(Number(req.query.limit) || 100, 500);
     const includeResolved = req.query.includeResolved === 'true';
+    const severityFilter = req.query.severity ? String(req.query.severity) : null;
 
     const [nodeEventsRaw, geofenceEventsRaw] = await Promise.all([
       db.listNodeEvents({ limit }),
@@ -700,6 +726,7 @@ app.get('/nodejs/api/alerts', async (req, res) => {
       // Skip legacy dual-write geofence_breach rows (now only in geofence_events)
       if (e.type === 'geofence_breach') continue;
       if (!includeResolved && e.resolved) continue;
+      if (severityFilter && e.severity !== severityFilter) continue;
       alerts.push({
         alertKey:   `node_event:${e.id}`,
         alertType:  e.type,
@@ -720,6 +747,7 @@ app.get('/nodejs/api/alerts', async (req, res) => {
     for (const e of geofenceEventsRaw) {
       if (e.type !== 'exit') continue;
       if (!includeResolved && e.resolved) continue;
+      if (severityFilter && severityFilter !== 'critical') continue;
       alerts.push({
         alertKey:     `geofence_event:${e.id}`,
         alertType:    'geofence_breach',
@@ -748,7 +776,7 @@ app.get('/nodejs/api/alerts', async (req, res) => {
   }
 });
 
-app.post('/nodejs/api/alerts/resolve', async (req, res) => {
+app.post('/nodejs/api/alerts/resolve', requireAuth, async (req, res) => {
   const { alertKey } = req.body || {};
   if (!alertKey || typeof alertKey !== 'string') {
     return res.status(400).json({ error: 'alertKey_required' });
@@ -785,7 +813,7 @@ setInterval(async () => {
   }
 }, 24 * 60 * 60 * 1000);
 
-app.get('/api/geofences', async (req, res) => {
+app.get('/api/geofences', requireAuth, async (req, res) => {
   try {
     const fences = await db.listGeofences();
     const normalized = fences.map((f) => {
@@ -807,7 +835,7 @@ app.get('/api/geofences', async (req, res) => {
 });
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/geofences', async (req, res) => {
+app.get('/nodejs/api/geofences', requireAuth, async (req, res) => {
   try {
     const fences = await db.listGeofences();
     const normalized = fences.map((f) => {
@@ -828,7 +856,7 @@ app.get('/nodejs/api/geofences', async (req, res) => {
   }
 });
 
-app.get('/api/geofence-events', async (req, res) => {
+app.get('/api/geofence-events', requireAuth, async (req, res) => {
   try {
     const since = req.query.since ? String(req.query.since) : null;
     const limit = req.query.limit ? Number(req.query.limit) : 100;
@@ -842,7 +870,7 @@ app.get('/api/geofence-events', async (req, res) => {
 });
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/geofence-events', async (req, res) => {
+app.get('/nodejs/api/geofence-events', requireAuth, async (req, res) => {
   try {
     const since = req.query.since ? String(req.query.since) : null;
     const limit = req.query.limit ? Number(req.query.limit) : 100;
@@ -946,7 +974,7 @@ app.post('/admin/nodes/:nodeId/photo', requireAuth, photoUpload.single('photo'),
 });
 
 // Node provisioning endpoint - assigns next available node_id
-app.post('/api/provision/node', async (req, res) => {
+app.post('/api/provision/node', requireAuth, async (req, res) => {
   try {
     const nextNodeId = await db.getNextAvailableNodeId();
 
@@ -1413,7 +1441,7 @@ app.post('/admin/log-level', requireAuth, (req, res) => {
 });
 
 // AI Development Analytics Endpoints
-app.get('/api/dev/battery/:nodeId', async (req, res) => {
+app.get('/api/dev/battery/:nodeId', requireAuth, async (req, res) => {
   if (!aiAnalytics) {
     return res.status(503).json({ error: 'ai_analytics_not_initialized' });
   }
@@ -1427,7 +1455,7 @@ app.get('/api/dev/battery/:nodeId', async (req, res) => {
   }
 });
 
-app.get('/api/dev/range/:nodeId?', async (req, res) => {
+app.get('/api/dev/range/:nodeId?', requireAuth, async (req, res) => {
   if (!aiAnalytics) {
     return res.status(503).json({ error: 'ai_analytics_not_initialized' });
   }
@@ -1441,7 +1469,7 @@ app.get('/api/dev/range/:nodeId?', async (req, res) => {
   }
 });
 
-app.get('/api/dev/health', async (req, res) => {
+app.get('/api/dev/health', requireAuth, async (req, res) => {
   if (!aiAnalytics) {
     return res.status(503).json({ error: 'ai_analytics_not_initialized' });
   }
@@ -1455,7 +1483,7 @@ app.get('/api/dev/health', async (req, res) => {
   }
 });
 
-app.get('/api/dev/report/:nodeId?', async (req, res) => {
+app.get('/api/dev/report/:nodeId?', requireAuth, async (req, res) => {
   if (!aiAnalytics) {
     return res.status(503).json({ error: 'ai_analytics_not_initialized' });
   }
@@ -1568,10 +1596,10 @@ async function handleCoverageQuery(req, res, routeName) {
 }
 
 // Coverage mapping endpoint - shows all positions colored by RSSI
-app.get('/api/coverage/:nodeId?', (req, res) => handleCoverageQuery(req, res, 'GET /api/coverage'));
+app.get('/api/coverage/:nodeId?', requireAuth, (req, res) => handleCoverageQuery(req, res, 'GET /api/coverage'));
 
 // Alias for Flutter web compatibility
-app.get('/nodejs/api/coverage/:nodeId?', (req, res) => handleCoverageQuery(req, res, 'GET /nodejs/api/coverage'));
+app.get('/nodejs/api/coverage/:nodeId?', requireAuth, (req, res) => handleCoverageQuery(req, res, 'GET /nodejs/api/coverage'));
 
 // Firmware management endpoints
 app.post('/admin/firmware/upload', requireAuth, firmwareUpload.single('firmware'), async (req, res) => {
@@ -1809,7 +1837,7 @@ app.get('/api/admin/config/:nodeId', requireAuth, async (req, res) => {
 });
 
 // Debug endpoint to check AI analytics status
-app.get('/api/debug/ai-analytics', (req, res) => {
+app.get('/api/debug/ai-analytics', requireAuth, (req, res) => {
   res.json({
     initialized: aiAnalytics !== null,
     influxEnvVars: {
@@ -1822,7 +1850,7 @@ app.get('/api/debug/ai-analytics', (req, res) => {
 });
 
 // Debug endpoint to check InfluxDB configuration
-app.get('/debug/influx-config', (req, res) => {
+app.get('/debug/influx-config', requireAuth, (req, res) => {
   try {
     const cfg = require('./influx').getInfluxConfig();
     res.json({
