@@ -1,0 +1,52 @@
+name: moo_point
+description: A simple asset tracker web application built with Flutter
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+  cupertino_icons: ^1.0.2
+  uuid: ^4.2.1
+  intl: ^0.20.2
+  flutter_map: ^7.0.2
+  flutter_map_heatmap: ^0.0.8
+  latlong2: ^0.9.0
+  http: ^1.1.0
+  http_parser: ^4.0.0
+  web_socket_channel: ^3.0.3
+  provider: ^6.1.2
+  flutter_blue_plus: ^2.1.1
+  permission_handler: ^12.0.1
+  sensors_plus: ^7.0.0
+  flutter_map_marker_cluster: ^1.4.0
+  shared_preferences: ^2.2.3
+  image_picker: ^1.0.7
+  image_cropper: ^11.0.0
+  fl_chart: ^1.1.1
+  web: ^1.1.0
+  nordic_dfu: ^7.1.2
+  path_provider: ^2.1.0
+  cached_network_image: ^3.3.1
+  material_design_icons_flutter: ^7.0.7296
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  generate: true
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - web/config.json

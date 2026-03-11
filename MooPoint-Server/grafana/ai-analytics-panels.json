@@ -1,0 +1,272 @@
+{
+  "ai_analytics_row": {
+    "collapsed": false,
+    "gridPos": {
+      "h": 1,
+      "w": 24,
+      "x": 0,
+      "y": 16
+    },
+    "id": 600,
+    "panels": [],
+    "title": "🤖 AI Development Analytics",
+    "type": "row"
+  },
+  "battery_status_panel": {
+    "datasource": {
+      "type": "influxdb",
+      "uid": "afcuqgg3er2m8e"
+    },
+    "description": "AI-powered battery life estimation and health status",
+    "fieldConfig": {
+      "defaults": {
+        "color": {
+          "mode": "thresholds"
+        },
+        "mappings": [],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 20
+            },
+            {
+              "color": "red",
+              "value": 10
+            }
+          ]
+        },
+        "unit": "percent"
+      }
+    },
+    "gridPos": {
+      "h": 8,
+      "w": 12,
+      "x": 0,
+      "y": 17
+    },
+    "id": 601,
+    "options": {
+      "displayMode": "gradient",
+      "minVizHeight": 10,
+      "minVizWidth": 0,
+      "orientation": "horizontal",
+      "reduceOptions": {
+        "calcs": ["lastNotNull"],
+        "fields": "",
+        "values": false
+      },
+      "showUnfilled": true
+    },
+    "targets": [
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "afcuqgg3er2m8e"
+        },
+        "query": "from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"position\")\n  |> filter(fn: (r) => r[\"node_id\"] =~ /${tracker:regex}/)\n  |> filter(fn: (r) => r[\"_field\"] == \"batt_percent\")\n  |> last()\n  |> group(columns: [\"node_id\"])",
+        "refId": "A"
+      }
+    ],
+    "title": "Battery Status (AI Monitored)",
+    "type": "bargauge"
+  },
+  "health_monitor_panel": {
+    "datasource": {
+      "type": "influxdb",
+      "uid": "afcuqgg3er2m8e"
+    },
+    "description": "AI-detected system health issues - GPS performance metrics",
+    "fieldConfig": {
+      "defaults": {
+        "color": {
+          "mode": "thresholds"
+        },
+        "custom": {
+          "align": "left",
+          "cellOptions": {
+            "type": "color-background"
+          },
+          "inspect": false
+        },
+        "mappings": [],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": 60
+            },
+            {
+              "color": "red",
+              "value": 120
+            }
+          ]
+        }
+      },
+      "overrides": [
+        {
+          "matcher": {
+            "id": "byName",
+            "options": "GPS Fix Time (s)"
+          },
+          "properties": [
+            {
+              "id": "custom.cellOptions",
+              "value": {
+                "mode": "gradient",
+                "type": "color-background"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "gridPos": {
+      "h": 8,
+      "w": 12,
+      "x": 12,
+      "y": 17
+    },
+    "id": 602,
+    "options": {
+      "cellHeight": "sm",
+      "footer": {
+        "countRows": false,
+        "fields": "",
+        "reducer": ["sum"],
+        "show": false
+      },
+      "showHeader": true
+    },
+    "targets": [
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "afcuqgg3er2m8e"
+        },
+        "query": "from(bucket: \"${bucket}\")\n  |> range(start: -1h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"position\")\n  |> filter(fn: (r) => r[\"node_id\"] =~ /${tracker:regex}/)\n  |> filter(fn: (r) => r[\"_field\"] == \"ext_gps_fix_time\" or r[\"_field\"] == \"ext_gps_hot\")\n  |> last()\n  |> pivot(rowKey:[\"node_id\"], columnKey: [\"_field\"], valueColumn: \"_value\")",
+        "refId": "A"
+      }
+    ],
+    "title": "AI Health Monitor - GPS Performance",
+    "transformations": [
+      {
+        "id": "organize",
+        "options": {
+          "renameByName": {
+            "ext_gps_fix_time": "GPS Fix Time (s)",
+            "ext_gps_hot": "Hot Starts",
+            "node_id": "Node ID"
+          }
+        }
+      }
+    ],
+    "type": "table"
+  },
+  "range_analysis_panel": {
+    "datasource": {
+      "type": "influxdb",
+      "uid": "afcuqgg3er2m8e"
+    },
+    "description": "AI-powered range and signal quality analysis",
+    "fieldConfig": {
+      "defaults": {
+        "color": {
+          "mode": "palette-classic"
+        },
+        "custom": {
+          "axisBorderShow": false,
+          "axisCenteredZero": false,
+          "axisColorMode": "text",
+          "axisLabel": "",
+          "axisPlacement": "auto",
+          "barAlignment": 0,
+          "drawStyle": "line",
+          "fillOpacity": 10,
+          "gradientMode": "none",
+          "hideFrom": {
+            "tooltip": false,
+            "viz": false,
+            "legend": false
+          },
+          "insertNulls": false,
+          "lineInterpolation": "smooth",
+          "lineWidth": 2,
+          "pointSize": 5,
+          "scaleDistribution": {
+            "type": "linear"
+          },
+          "showPoints": "never",
+          "spanNulls": false,
+          "stacking": {
+            "group": "A",
+            "mode": "none"
+          },
+          "thresholdsStyle": {
+            "mode": "line"
+          }
+        },
+        "mappings": [],
+        "thresholds": {
+          "mode": "absolute",
+          "steps": [
+            {
+              "color": "green",
+              "value": null
+            },
+            {
+              "color": "yellow",
+              "value": -100
+            },
+            {
+              "color": "red",
+              "value": -110
+            }
+          ]
+        },
+        "unit": "dBm"
+      }
+    },
+    "gridPos": {
+      "h": 8,
+      "w": 24,
+      "x": 0,
+      "y": 25
+    },
+    "id": 603,
+    "options": {
+      "legend": {
+        "calcs": ["mean", "min"],
+        "displayMode": "table",
+        "placement": "right",
+        "showLegend": true
+      },
+      "tooltip": {
+        "mode": "multi",
+        "sort": "none"
+      }
+    },
+    "targets": [
+      {
+        "datasource": {
+          "type": "influxdb",
+          "uid": "afcuqgg3er2m8e"
+        },
+        "query": "from(bucket: \"${bucket}\")\n  |> range(start: -24h)\n  |> filter(fn: (r) => r[\"_measurement\"] == \"position\")\n  |> filter(fn: (r) => r[\"node_id\"] =~ /${tracker:regex}/)\n  |> filter(fn: (r) => r[\"_field\"] == \"ext_tracker_rssi\")\n  |> aggregateWindow(every: 5m, fn: mean, createEmpty: false)",
+        "refId": "A"
+      }
+    ],
+    "title": "AI Range Analysis - RSSI Over Time",
+    "type": "timeseries"
+  }
+}

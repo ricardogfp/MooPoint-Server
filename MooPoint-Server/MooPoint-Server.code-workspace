@@ -1,0 +1,21 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		},
+		{
+			"path": "../../../MooPoint-Tracker-Arduino/T_Echo_Tracker_Arduino_IDE"
+		},
+		{
+			"path": "../../../MooPoint-Gateway"
+		}
+	],
+	"settings": {
+		"git.ignoreLimitWarning": true,
+		"files.associations": {
+			"cstdint": "cpp",
+			"compare": "cpp",
+			"format": "cpp"
+		}
+	}
+}

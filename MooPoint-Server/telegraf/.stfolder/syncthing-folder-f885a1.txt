@@ -1,0 +1,5 @@
+# This directory is a Syncthing folder marker.
+# Do not delete.
+
+folderID: vegcw-sxfoj
+created: 2026-02-27T19:57:59+01:00

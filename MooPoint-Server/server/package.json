@@ -1,0 +1,26 @@
+{
+  "name": "cow-tracker-server",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "@influxdata/influxdb-client": "^1.35.0",
+    "@turf/boolean-point-in-polygon": "^7.1.0",
+    "archiver": "^5.3.1",
+    "cors": "^2.8.5",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-session": "^1.17.3",
+    "mqtt": "^5.10.4",
+    "multer": "^1.4.5-lts.1",
+    "pg": "^8.11.5",
+    "undici": "^6.19.2",
+    "uuid": "^9.0.0",
+    "winston": "^3.13.0",
+    "ws": "^8.17.0"
+  }
+}
